@@ -1,4 +1,3 @@
-"""Selected province-generic SOP-CN functions; runtime inputs are supplied by the parent model."""
 
 from __future__ import annotations
 
