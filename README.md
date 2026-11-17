@@ -22,11 +22,13 @@ SOP-CN links the following components:
 1. **Consumer costs and vehicle choice.** A perceived cost of ownership framework combines purchase and operating costs with other choice attributes. A nested-logit model estimates market shares for vehicle alternatives separately for private-owned and non-private-owned markets.
 2. **Sales and manufacturer decisions.** A purchase-incidence model estimates provincial passenger-vehicle sales. Manufacturer-financed subsidies are represented through a profit-maximizing optimization process.
 3. **Fleet turnover.** An age-structured stock model tracks new sales, vehicle ageing, and retirement across provinces, markets, and vehicle alternatives.
-4. **Vehicle activity and energy demand.** Vehicle stocks, travel activity, and energy intensities are combined to estimate liquid-fuel, electricity, and hydrogen demand. Plug-in hybrid operation is divided between electric and fuel modes.
-5. **Well-to-wheel emissions.** Energy demand is linked to fuel- and electricity-supply pathways and vehicle operation to estimate climate emissions and emissions of CO, SO₂, NOₓ, VOCs, PM₂.₅, and PM₁₀. Particulate emissions include tyre, brake, and road wear.
+4. **Vehicle activity and energy demand.** Vehicle stocks, travel activity, and energy intensities are combined to estimate liquid-fuel, electricity, and hydrogen demand. Vehicle choice uses anticipated mileage; energy demand and emissions use age-adjusted realized mileage without an additional vehicle-online-rate multiplier. Plug-in hybrid operation is divided between electric and fuel modes.
+5. **Well-to-wheel emissions.** Energy demand is linked to fuel- and electricity-supply pathways and vehicle operation to estimate CO₂ emissions and emissions of CO, SO₂, NOₓ, VOCs, PM₂.₅, and PM₁₀. Particulate emissions include tyre, brake, and road wear with linear mass scaling. Residual brake-wear factors for HEVs, PHEVs, and BEVs are 0.62, 0.46, and 0.17 for PM₂.₅, and 0.45, 0.28, and 0.11 for PM₁₀. Tailpipe SO₂ follows operating-year fuel consumption and sulfur content.
 6. **Scenario and spatial analysis.** Alternative ethanol-blending and electricity carbon-intensity pathways are compared across provinces and vehicle-use groups. A demand-matched BEV sizing analysis assesses range requirements, battery capacity, curb mass, and potential reductions in non-exhaust particulate emissions.
 
 The well-to-wheel assessment covers energy supply and vehicle operation. It does not represent a complete vehicle life cycle including manufacturing and end-of-life processes, and it does not directly estimate pollutant concentrations, population exposure, or health outcomes.
+
+The Python files organize functions by model component: `pco.py`, `market_share.py`, `sales.py`, `stocks.py`, `calibration.py`, and `subsidy_optimization.py`. Functions use the parent model's province-year inputs and runtime helpers. PEV sales shares include BEVs and PHEVs, excluding FCEVs. For a given province, year, and market, ethanol scenarios use the corresponding E0 alternative-specific constants.
 
 ## Authors and collaborators
 

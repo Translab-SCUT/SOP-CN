@@ -1,19 +1,20 @@
+"""Province-generic functions using the parent model runtime context."""
 
-from __future__ import annotations
+import hashlib
+import random
+import time
+
+import numpy as np
 
 
 def _stable_ga_seed(province_name, year):
-    """Return a cross-process-stable seed and its auditable key."""
-    seed_key = (
-        f"SOP-CN-provincial-V4|{str(province_name).strip()}|{int(year)}"
-    )
+    seed_key = f"SOP-CN-provincial-V4|{str(province_name).strip()}|{int(year)}"
     digest = hashlib.sha256(seed_key.encode("utf-8")).digest()
-    seed = int.from_bytes(digest[:8], byteorder="big") % (2 ** 32)
-    return seed, seed_key
+    seed = int.from_bytes(digest[:8], byteorder="big") % 2**32
+    return (seed, seed_key)
 
 
 def _ga_annual_total_profit():
-    """Annual manufacturer profit in CNY."""
     private_sales_1000 = _ga_as_float_array(
         df_model_private_owned_vehicle_market.loc[:23, "Sales (1000)"]
     )
@@ -21,87 +22,41 @@ def _ga_annual_total_profit():
         df_model_non_private_vehicle_market.loc[:23, "Sales (1000)"]
     )
     private_price = _ga_as_float_array(
-        df_model_private_owned_vehicle_market.loc[:23, "Price to consumers (\uffe5)"]
+        df_model_private_owned_vehicle_market.loc[:23, "Price to consumers (￥)"]
     )
     non_private_price = _ga_as_float_array(
-        df_model_non_private_vehicle_market.loc[:23, "Price to consumers (\uffe5)"]
+        df_model_non_private_vehicle_market.loc[:23, "Price to consumers (￥)"]
     )
     additional_subsidy = _ga_as_float_array(
-        df_model.loc[:23, "Additional Subsidy to Consumers (\uffe5)"]
+        df_model.loc[:23, "Additional Subsidy to Consumers (￥)"]
     )
-    central_subsidy = _ga_as_float_array(
-        df_model.loc[:23, "Central Gov Sub to Consumers (\uffe5)"]
-    )
-    local_subsidy = _ga_as_float_array(
-        df_model.loc[:23, "Avg Local Gov Sub to Consumers (\uffe5)"]
-    )
-    production_cost = _ga_as_float_array(
-        df_model.loc[:23, "Production Cost (\uffe5)"]
-    )
+    central_subsidy = _ga_as_float_array(df_model.loc[:23, "Central Gov Sub to Consumers (￥)"])
+    local_subsidy = _ga_as_float_array(df_model.loc[:23, "Avg Local Gov Sub to Consumers (￥)"])
+    production_cost = _ga_as_float_array(df_model.loc[:23, "Production Cost (￥)"])
     purchase_tax_column = next(
-        column for column in df_model.columns
-        if str(column).startswith("Purchase Tax to Consumers")
+        (
+            column
+            for column in df_model.columns
+            if str(column).startswith("Purchase Tax to Consumers")
+        )
     )
     insurance_column = next(
-        column for column in df_model.columns
-        if str(column).startswith("Insurance to Consumers")
+        (column for column in df_model.columns if str(column).startswith("Insurance to Consumers"))
     )
     purchase_tax = _ga_as_float_array(df_model.loc[:23, purchase_tax_column])
     insurance = _ga_as_float_array(df_model.loc[:23, insurance_column])
     government_subsidy = additional_subsidy + central_subsidy + local_subsidy
-    private_margin = (
-        private_price - purchase_tax - insurance
-        + government_subsidy - production_cost
-    )
+    private_margin = private_price - purchase_tax - insurance + government_subsidy - production_cost
     non_private_margin = (
-        non_private_price - purchase_tax - insurance
-        + government_subsidy - production_cost
+        non_private_price - purchase_tax - insurance + government_subsidy - production_cost
     )
     return float(
-        1000.0 * (
+        1000.0
+        * (
             np.sum(private_sales_1000 * private_margin)
             + np.sum(non_private_sales_1000 * non_private_margin)
         )
     )
-
-
-
-
-    private_sales = _ga_as_float_array(df_model_private_owned_vehicle_market.loc[:23, "Sales (1000)"])
-    non_private_sales = _ga_as_float_array(df_model_non_private_vehicle_market.loc[:23, "Sales (1000)"])
-    total_sales = private_sales + non_private_sales
-    total_sales_sum = float(total_sales.sum())
-    if total_sales_sum <= 0:
-        return -1e18
-
-    private_price = _ga_as_float_array(df_model_private_owned_vehicle_market.loc[:23, "Price to consumers (￥)"])
-    non_private_price = _ga_as_float_array(df_model_non_private_vehicle_market.loc[:23, "Price to consumers (￥)"])
-    additional_subsidy = _ga_as_float_array(df_model.loc[:23, "Additional Subsidy to Consumers (￥)"])
-    central_subsidy = _ga_as_float_array(df_model.loc[:23, "Central Gov Sub to Consumers (￥)"])
-    local_subsidy = _ga_as_float_array(df_model.loc[:23, "Avg Local Gov Sub to Consumers (￥)"])
-    internal_subsidy = _ga_as_float_array(df_model.loc[:23, "Internal Subsidy to Consumer(￥)"])
-    production_cost = _ga_as_float_array(df_model.loc[:23, "Production Cost (￥)"])
-
-    purchase_tax_column = next(
-        column for column in df_model.columns
-        if str(column).startswith("Purchase Tax to Consumers")
-    )
-    insurance_column = next(
-        column for column in df_model.columns
-        if str(column).startswith("Insurance to Consumers")
-    )
-    purchase_tax = _ga_as_float_array(df_model.loc[:23, purchase_tax_column])
-    insurance = _ga_as_float_array(df_model.loc[:23, insurance_column])
-    government_subsidy = additional_subsidy + central_subsidy + local_subsidy
-    
-    
-    private_margin = private_price - purchase_tax - insurance + government_subsidy - production_cost
-    non_private_margin = non_private_price - purchase_tax - insurance + government_subsidy - production_cost
-    profit_cny = (
-        np.sum(private_sales * private_margin)
-        + np.sum(non_private_sales * non_private_margin)
-    ) * 1000.0
-    return profit_cny / total_sales_sum / 1000.0
 
 
 def _ga_sanitize_individual(individual):
@@ -127,10 +82,7 @@ def _ga_random_individual(n_vehicles, rng):
     step = max(int(_ga_projection_value("GA_Subsidy_Step")), 1)
     if upper <= lower:
         return [0.0] * n_vehicles
-    return [
-        float(rng.randrange(lower, upper + step, step))
-        for _ in range(n_vehicles)
-    ]
+    return [float(rng.randrange(lower, upper + step, step)) for _ in range(n_vehicles)]
 
 
 def _ga_run_internal_subsidy_optimization():
@@ -144,11 +96,9 @@ def _ga_run_internal_subsidy_optimization():
     mutation_sigma = float(_ga_projection_value("GA_Mutation_Sigma"))
     mutation_indpb = float(_ga_projection_value("GA_Mutation_Indpb"))
     tournament_size = int(_ga_projection_value("GA_Tournament_Size"))
-
     zero = [0.0] * n_vehicles
     population = [zero] + [
-        _ga_random_individual(n_vehicles, rng)
-        for _ in range(max(population_size - 1, 0))
+        _ga_random_individual(n_vehicles, rng) for _ in range(max(population_size - 1, 0))
     ]
     fitness = _ga_simulate_population(population).tolist()
     best_idx = int(np.argmax(fitness))
@@ -157,17 +107,12 @@ def _ga_run_internal_subsidy_optimization():
     stalled_count = 0
     generation = 0
     start_time = time.time()
-
     while stalled_count < max_stalled_generations:
         generation += 1
         selected = []
         for _ in range(population_size):
-            contenders = rng.sample(
-                range(population_size),
-                k=min(tournament_size, population_size),
-            )
+            contenders = rng.sample(range(population_size), k=min(tournament_size, population_size))
             selected.append(list(population[max(contenders, key=lambda idx: fitness[idx])]))
-
         offspring = []
         for i in range(0, population_size, 2):
             parent1 = list(selected[i])
@@ -178,16 +123,14 @@ def _ga_run_internal_subsidy_optimization():
                 child1 = parent1[:point1] + parent2[point1:point2] + parent1[point2:]
                 child2 = parent2[:point1] + parent1[point1:point2] + parent2[point2:]
             else:
-                child1, child2 = parent1, parent2
+                child1, child2 = (parent1, parent2)
             offspring.extend([child1, child2])
         offspring = offspring[:population_size]
-
         for individual in offspring:
             if rng.random() < mutpb:
                 for idx in range(n_vehicles):
                     if rng.random() < mutation_indpb:
                         individual[idx] += rng.gauss(0.0, mutation_sigma)
-
         population = [best] + [_ga_sanitize_individual(ind) for ind in offspring[:-1]]
         fitness = _ga_simulate_population(population).tolist()
         current_idx = int(np.argmax(fitness))
@@ -199,9 +142,7 @@ def _ga_run_internal_subsidy_optimization():
             stalled_count = 0
         else:
             stalled_count += 1
-
     print(
-        f"Internal subsidy GA ended at generation {generation} "
-        f"in {time.time() - start_time:.1f}s"
+        f"Internal subsidy GA ended at generation {generation} in {time.time() - start_time:.1f}s"
     )
-    return _ga_sanitize_individual(best), best_fitness, generation
+    return (_ga_sanitize_individual(best), best_fitness, generation)
